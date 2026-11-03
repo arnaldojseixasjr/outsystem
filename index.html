@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mão na Massa — Aula 01: Fundamentos & Reatividade no OutSystems</title>
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Configuração customizada do Tailwind -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  '#eef6ff',
+              100: '#d9eaff',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            },
+            ink: {
+              900: '#0b1120',
+              800: '#0f172a',
+              700: '#1e293b',
+              600: '#334155',
+            },
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Fontes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    body {
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(14, 165, 233, 0.10), transparent 40%),
+        radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.10), transparent 40%);
+      background-attachment: fixed;
+    }
+
+    /* Animação suave da barra de progresso */
+    #progress-fill {
+      transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Checkbox customizado */
+    .task-checkbox:checked + .task-label .task-text {
+      text-decoration: line-through;
+      color: #64748b;
+    }
+    .task-checkbox:checked + .task-label .task-index {
+      background-color: #0ea5e9;
+      color: #fff;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+    }
+    .task-checkbox:checked + .task-label .task-index svg {
+      display: block;
+    }
+    .task-checkbox:checked + .task-label {
+      opacity: 0.85;
+    }
+
+    /* Animação de "pulse" ao concluir seção */
+    .section-complete {
+      animation: glow 1.2s ease-out;
+    }
+    @keyframes glow {
+      0%   { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.5); }
+      100% { box-shadow: 0 0 0 18px rgba(14, 165, 233, 0); }
+    }
+
+    /* Scrollbar dark */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Código inline */
+    code.inline-code {
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #0b1120;
+      color: #38bdf8;
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.35rem;
+      border: 1px solid #1e293b;
+      font-size: 0.85em;
+      white-space: nowrap;
+    }
+
+    /* Animação de entrada dos cards */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.6s ease forwards;
+    }
+    .fade-up:nth-child(1) { animation-delay: 0.05s; }
+    .fade-up:nth-child(2) { animation-delay: 0.15s; }
+    .fade-up:nth-child(3) { animation-delay: 0.25s; }
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen font-sans text-slate-200 bg-ink-900">
+
+  <!-- ===== Barra de Progresso Fixa no Topo ===== -->
+  <div class="sticky top-0 z-50 backdrop-blur-md bg-ink-900/80 border-b border-ink-700">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+      <div class="flex items-center justify-between gap-4 mb-1.5">
+        <div class="flex items-center gap-2 text-xs font-medium text-slate-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+          </svg>
+          <span>Progresso da Aula</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="progress-text" class="text-xs font-semibold text-brand-400 tabular-nums">0%</span>
+          <span class="text-xs text-slate-500 tabular-nums">(<span id="done-count">0</span>/<span id="total-count">0</span>)</span>
+        </div>
+      </div>
+      <div class="w-full h-2.5 bg-ink-700 rounded-full overflow-hidden">
+        <div id="progress-fill" class="h-full w-0 bg-gradient-to-r from-brand-500 via-brand-400 to-indigo-400 rounded-full"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Cabeçalho ===== -->
+  <header class="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-start gap-4">
+        <div class="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/30">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+        </div>
+        <div>
+          <span class="inline-flex items-center gap-2 text-[11px] font-semibold tracking-wider uppercase text-brand-400 bg-brand-500/10 border border-brand-500/20 rounded-full px-2.5 py-1 mb-2">
+            UniFECAF • Low Code • OutSystems
+          </span>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white leading-tight tracking-tight">
+            Mão na Massa — Aula 01: Fundamentos &amp; Reatividade no OutSystems
+          </h1>
+          <p class="mt-2 text-sm sm:text-base text-slate-400 max-w-2xl">
+            Siga o passo a passo abaixo no seu <span class="font-semibold text-slate-300">Service Studio</span>. Marque os itens conforme for concluindo!
+          </p>
+        </div>
+      </div>
+
+      <!-- Botão Resetar -->
+      <button
+        id="reset-btn"
+        class="group self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-300 bg-ink-700 hover:bg-ink-600 border border-ink-600 hover:border-slate-500 transition-all duration-200 shadow-sm"
+        title="Limpa todas as marcações"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400 group-hover:text-rose-400 group-hover:rotate-180 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Resetar Progresso
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 pb-20 space-y-6">
+
+    <!-- ============================================================ -->
+    <!-- SEÇÃO 1 -->
+    <!-- ============================================================ -->
+    <section
+      data-section="1"
+      class="fade-up bg-ink-800/60 backdrop-blur-sm border border-ink-700 rounded-2xl overflow-hidden shadow-xl shadow-black/20"
+    >
+      <div class="px-5 sm:px-6 py-4 border-b border-ink-700 bg-gradient-to-r from-ink-800 to-ink-700/50 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-500/15 border border-brand-500/30 text-brand-400 font-bold text-sm">01</span>
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-white">Mão na Massa I — Criando o Projeto e a Tela</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Duração: 20 min</p>
+          </div>
+        </div>
+        <span class="section-badge text-[11px] font-semibold px-2.5 py-1 rounded-full bg-ink-700 text-slate-400 border border-ink-600">
+          <span class="section-done">0</span>/<span class="section-total">6</span> concluídos
+        </span>
+      </div>
+
+      <div class="px-5 sm:px-6 py-4 bg-ink-900/40 border-b border-ink-700">
+        <p class="text-sm text-slate-300">
+          <span class="font-semibold text-brand-400">Objetivo:</span> Configurar o ambiente, criar o primeiro aplicativo Reactive Web e exibir uma mensagem dinâmica na tela inicial.
+        </p>
+      </div>
+
+      <ul class="divide-y divide-ink-700/60">
+        <li>
+          <input type="checkbox" id="s1-t1" class="task-checkbox sr-only peer" />
+          <label for="s1-t1" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              1
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Abra o <span class="font-semibold text-white">Service Studio</span> e clique em <code class="inline-code">"New Application"</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s1-t2" class="task-checkbox sr-only peer" />
+          <label for="s1-t2" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              2
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Escolha a opção <code class="inline-code">"Reactive Web App"</code>, digite o nome <code class="inline-code">Painel_Operacoes_[SeuNome]</code> e clique em <code class="inline-code">"Create App"</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s1-t3" class="task-checkbox sr-only peer" />
+          <label for="s1-t3" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              3
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Na aba <span class="font-semibold text-white">"Interface"</span>, vá em <span class="font-semibold text-white">UI Flows → MainFlow</span>, clique com o botão direito e selecione <code class="inline-code">"Add Screen" → "Empty"</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s1-t4" class="task-checkbox sr-only peer" />
+          <label for="s1-t4" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              4
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Nomeie essa nova tela como <code class="inline-code">DashboardOperacional</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s1-t5" class="task-checkbox sr-only peer" />
+          <label for="s1-t5" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              5
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Na barra lateral de <span class="font-semibold text-white">Widgets</span>, arraste um <span class="font-semibold text-white">"Container"</span> para a tela, e dentro dele coloque um widget de <span class="font-semibold text-white">"Expression"</span>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s1-t6" class="task-checkbox sr-only peer" />
+          <label for="s1-t6" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              6
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Na propriedade <span class="font-semibold text-white">Value</span> da Expression, digite <code class="inline-code">"Olá, operador! Seja bem-vindo."</code> e publique clicando no botão verde <code class="inline-code">"1-Click Publish"</code>.</span>
+          </label>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SEÇÃO 2 -->
+    <!-- ============================================================ -->
+    <section
+      data-section="2"
+      class="fade-up bg-ink-800/60 backdrop-blur-sm border border-ink-700 rounded-2xl overflow-hidden shadow-xl shadow-black/20"
+    >
+      <div class="px-5 sm:px-6 py-4 border-b border-ink-700 bg-gradient-to-r from-ink-800 to-ink-700/50 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold text-sm">02</span>
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-white">Mão na Massa II — Reatividade e Client Actions</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Duração: 40 min</p>
+          </div>
+        </div>
+        <span class="section-badge text-[11px] font-semibold px-2.5 py-1 rounded-full bg-ink-700 text-slate-400 border border-ink-600">
+          <span class="section-done">0</span>/<span class="section-total">5</span> concluídos
+        </span>
+      </div>
+
+      <div class="px-5 sm:px-6 py-4 bg-ink-900/40 border-b border-ink-700">
+        <p class="text-sm text-slate-300">
+          <span class="font-semibold text-indigo-300">Objetivo:</span> Criar variáveis locais, capturar entradas do usuário e executar cálculos dinâmicos no lado do cliente (Client-Side) sem recarregar a página.
+        </p>
+      </div>
+
+      <ul class="divide-y divide-ink-700/60">
+        <li>
+          <input type="checkbox" id="s2-t1" class="task-checkbox sr-only peer" />
+          <label for="s2-t1" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              1
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Na aba inferior esquerda do Service Studio, clique em <span class="font-semibold text-white">"Local Variables"</span> e crie duas variáveis: <code class="inline-code">QtdHoras</code> (Tipo: <span class="text-brand-400">Integer</span>) e <code class="inline-code">ValorHora</code> (Tipo: <span class="text-brand-400">Decimal</span>).</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s2-t2" class="task-checkbox sr-only peer" />
+          <label for="s2-t2" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              2
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Arraste dois campos <span class="font-semibold text-white">"Input"</span> para a tela. No primeiro input, na propriedade <span class="font-semibold text-white">Variable</span>, selecione <code class="inline-code">QtdHoras</code>. No segundo, selecione <code class="inline-code">ValorHora</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s2-t3" class="task-checkbox sr-only peer" />
+          <label for="s2-t3" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              3
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Crie uma nova <span class="font-semibold text-white">"Client Action"</span> na aba <span class="font-semibold text-white">Logic</span> chamada <code class="inline-code">CalcularCusto</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s2-t4" class="task-checkbox sr-only peer" />
+          <label for="s2-t4" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              4
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Dentro dela, arraste um nó <span class="font-semibold text-white">"Assign"</span>. No lado esquerdo, crie uma variável local <code class="inline-code">CustoTotal</code> (<span class="text-brand-400">Decimal</span>). No lado direito, coloque a expressão: <code class="inline-code">QtdHoras * ValorHora</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s2-t5" class="task-checkbox sr-only peer" />
+          <label for="s2-t5" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              5
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Volte na tela, selecione os inputs, vá na propriedade <span class="font-semibold text-white">"OnChange"</span> e escolha a Client Action <code class="inline-code">CalcularCusto</code> que acabamos de criar para o cálculo rodar instantaneamente!</span>
+          </label>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SEÇÃO 3 -->
+    <!-- ============================================================ -->
+    <section
+      data-section="3"
+      class="fade-up bg-ink-800/60 backdrop-blur-sm border border-ink-700 rounded-2xl overflow-hidden shadow-xl shadow-black/20"
+    >
+      <div class="px-5 sm:px-6 py-4 border-b border-ink-700 bg-gradient-to-r from-ink-800 to-ink-700/50 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-sm">03</span>
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-white">Mão na Massa III — Componentização com Blocos</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Duração: 35 min</p>
+          </div>
+        </div>
+        <span class="section-badge text-[11px] font-semibold px-2.5 py-1 rounded-full bg-ink-700 text-slate-400 border border-ink-600">
+          <span class="section-done">0</span>/<span class="section-total">4</span> concluídos
+        </span>
+      </div>
+
+      <div class="px-5 sm:px-6 py-4 bg-ink-900/40 border-b border-ink-700">
+        <p class="text-sm text-slate-300">
+          <span class="font-semibold text-emerald-300">Objetivo:</span> Criar componentes reutilizáveis para evitar retrabalho e estruturar cards de indicadores (KPIs).
+        </p>
+      </div>
+
+      <ul class="divide-y divide-ink-700/60">
+        <li>
+          <input type="checkbox" id="s3-t1" class="task-checkbox sr-only peer" />
+          <label for="s3-t1" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              1
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Na aba <span class="font-semibold text-white">"Interface"</span>, clique com o botão direito em <span class="font-semibold text-white">"UI Flows"</span> e crie um novo <span class="font-semibold text-white">"Block"</span> chamado <code class="inline-code">KpiCard</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s3-t2" class="task-checkbox sr-only peer" />
+          <label for="s3-t2" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              2
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">No Bloco criado, clique com o botão direito nele e adicione dois <span class="font-semibold text-white">"Input Parameters"</span>: <code class="inline-code">Titulo</code> (<span class="text-brand-400">Text</span>) e <code class="inline-code">Valor</code> (<span class="text-brand-400">Text</span>).</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s3-t3" class="task-checkbox sr-only peer" />
+          <label for="s3-t3" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              3
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Monte o layout visual do bloco arrastando um <span class="font-semibold text-white">Container</span> e colocando <span class="font-semibold text-white">Expressions</span> para exibir os parâmetros <code class="inline-code">Titulo</code> e <code class="inline-code">Valor</code>.</span>
+          </label>
+        </li>
+        <li>
+          <input type="checkbox" id="s3-t4" class="task-checkbox sr-only peer" />
+          <label for="s3-t4" class="task-label flex items-start gap-4 px-5 sm:px-6 py-4 cursor-pointer hover:bg-ink-700/30 transition-colors">
+            <span class="task-index shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border-2 border-ink-600 text-slate-400 text-xs font-bold transition-all duration-200">
+              4
+              <svg class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            </span>
+            <span class="task-text text-sm sm:text-base text-slate-200 leading-relaxed pt-0.5">Volte na tela principal <code class="inline-code">DashboardOperacional</code>, observe que o bloco <code class="inline-code">KpiCard</code> apareceu na sua árvore de widgets e arraste-o para a tela, preenchendo os parâmetros de entrada.</span>
+          </label>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ===== Mensagem de Conclusão ===== -->
+    <div id="completion-banner" class="hidden text-center py-10 px-6 rounded-2xl bg-gradient-to-br from-brand-500/10 to-emerald-500/10 border border-brand-500/30">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-brand-500 to-emerald-500 mb-4 shadow-lg shadow-brand-500/40">
+        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-white mb-1">Aula concluída! 🎉</h3>
+      <p class="text-sm text-slate-400">Você completou todos os 15 passos. Publique sua app e mostre para a turma!</p>
+    </div>
+
+  </main>
+
+  <!-- ===== Rodapé ===== -->
+  <footer class="border-t border-ink-700 bg-ink-900/80">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+      <span>UniFECAF • Desenvolvimento de Aplicações Web Low Code (OutSystems)</span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        Seu progresso é salvo automaticamente neste navegador
+      </span>
+    </div>
+  </footer>
+
+  <!-- ===== JavaScript ===== -->
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEY = 'unifecaf_aula01_progress';
+      const checkboxes = Array.from(document.querySelectorAll('.task-checkbox'));
+      const progressFill = document.getElementById('progress-fill');
+      const progressText = document.getElementById('progress-text');
+      const doneCount = document.getElementById('done-count');
+      const totalCount = document.getElementById('total-count');
+      const resetBtn = document.getElementById('reset-btn');
+      const completionBanner = document.getElementById('completion-banner');
+
+      // Total de itens
+      const total = checkboxes.length;
+      totalCount.textContent = total;
+
+      // Persistência via localStorage
+      function saveState() {
+        const checked = checkboxes
+          .filter(cb => cb.checked)
+          .map(cb => cb.id);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(checked));
+        } catch (e) {
+          // Ignora se localStorage não estiver disponível
+        }
+      }
+
+      function loadState() {
+        try {
+          const checked = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          checked.forEach(id => {
+            const cb = document.getElementById(id);
+            if (cb) cb.checked = true;
+          });
+        } catch (e) {
+          // Ignora erros de parse
+        }
+      }
+
+      function updateUI() {
+        const done = checkboxes.filter(cb => cb.checked).length;
+        const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+        progressFill.style.width = pct + '%';
+        progressText.textContent = pct + '%';
+        doneCount.textContent = done;
+
+        // Atualiza badge de cada seção
+        document.querySelectorAll('section[data-section]').forEach(section => {
+          const sectionCheckboxes = section.querySelectorAll('.task-checkbox');
+          const sectionDone = section.querySelectorAll('.task-checkbox:checked').length;
+          const sectionTotal = sectionCheckboxes.length;
+          section.querySelector('.section-done').textContent = sectionDone;
+          section.querySelector('.section-total').textContent = sectionTotal;
+
+          const badge = section.querySelector('.section-badge');
+          if (sectionDone === sectionTotal && sectionTotal > 0) {
+            badge.classList.remove('bg-ink-700', 'text-slate-400', 'border-ink-600');
+            badge.classList.add('bg-emerald-500/15', 'text-emerald-300', 'border-emerald-500/30');
+            if (!section.dataset.glowed) {
+              section.classList.add('section-complete');
+              section.dataset.glowed = 'true';
+              setTimeout(() => section.classList.remove('section-complete'), 1200);
+            }
+          } else {
+            badge.classList.add('bg-ink-700', 'text-slate-400', 'border-ink-600');
+            badge.classList.remove('bg-emerald-500/15', 'text-emerald-300', 'border-emerald-500/30');
+            section.dataset.glowed = '';
+          }
+        });
+
+        // Banner de conclusão total
+        if (done === total && total > 0) {
+          completionBanner.classList.remove('hidden');
+          completionBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          completionBanner.classList.add('hidden');
+        }
+      }
+
+      // Listeners
+      checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+          saveState();
+          updateUI();
+        });
+      });
+
+      resetBtn.addEventListener('click', () => {
+        if (confirm('Deseja realmente limpar todo o progresso? Esta ação não pode ser desfeita.')) {
+          checkboxes.forEach(cb => { cb.checked = false; });
+          document.querySelectorAll('section[data-section]').forEach(s => { s.dataset.glowed = ''; });
+          saveState();
+          updateUI();
+        }
+      });
+
+      // Inicializa
+      loadState();
+      updateUI();
+    })();
+  </script>
+</body>
+</html>
